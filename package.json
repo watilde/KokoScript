@@ -1,0 +1,19 @@
+{
+  "name": "kokoscript",
+  "version": "1.0.0",
+  "description": "日本語で書けるJavaScriptサブセット言語 - 句読点を活用した自然な構文",
+  "main": "kokoscript.js",
+  "scripts": {
+    "test": "node test.js",
+    "repl": "node repl.js"
+  },
+  "keywords": [
+    "japanese",
+    "programming",
+    "language",
+    "transpiler",
+    "kokoscript"
+  ],
+  "author": "",
+  "license": "MIT"
+}
