@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KokoScript Playground</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
     <style>
         * {
             margin: 0;
@@ -72,12 +73,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
         }
 
         .panel-header h2 {
             color: #333;
             font-size: 1.1rem;
             font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .panel-content {
@@ -194,6 +204,30 @@
             background: #218838;
         }
 
+        .sample-selector {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.75rem;
+            color: #555;
+            min-width: 170px;
+        }
+
+        .sample-selector select {
+            margin-top: 0.2rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            background: white;
+            font-size: 0.85rem;
+            min-width: 160px;
+        }
+
+        .sample-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
         .examples {
             margin-top: 1rem;
             padding: 1rem;
@@ -237,19 +271,25 @@
     </style>
 </head>
 <body>
+    <a class="github-fork-ribbon" href="https://github.com/watilde/KokoScript" data-ribbon="GitHubでフォーク" title="GitHubでフォーク">GitHubでフォーク</a>
     <div class="header">
-        <h1>🌸 KokoScript Playground</h1>
-        <p>日本語で書けるJavaScriptのサブセット言語 - 句読点を活用した自然な構文でプログラミング</p>
+        <h1>🈁 KokoScript Playground</h1>
+        <p>日本語で書けるJavaScriptのサブセット言語</p>
     </div>
 
     <div class="container">
         <div class="panel editor-panel">
             <div class="panel-header">
-                <h2>📝 KokoScriptエディター</h2>
-                <div class="button-group">
-                    <button class="btn-example" onclick="showExamples()">📚 サンプル</button>
-                    <button class="btn-clear" onclick="clearEditor()">🗑️ クリア</button>
-                    <button class="btn-run" onclick="runCode()">▶️ 実行</button>
+                <h2>KokoScriptエディター</h2>
+                <div class="header-controls">
+                    <label class="sample-selector">
+                        サンプルを選択
+                        <select id="exampleSelect"></select>
+                    </label>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="clearEditor()">クリア</button>
+                        <button class="btn-run" onclick="runCode()">▶実行</button>
+                    </div>
                 </div>
             </div>
             <div class="panel-content">
@@ -273,7 +313,7 @@
 
         <div class="panel output-panel">
             <div class="panel-header">
-                <h2>📤 出力</h2>
+                <h2>出力</h2>
             </div>
             <div class="panel-content">
                 <div class="output-section">
@@ -347,17 +387,30 @@
 チェックするにバナナを渡す。`
         };
 
-        function showExamples() {
-            const exampleNames = Object.keys(examples);
-            const choice = prompt('サンプルを選択してください:\n' + 
-                exampleNames.map((name, i) => `${i + 1}. ${name}`).join('\n'));
-            
-            const index = parseInt(choice) - 1;
-            if (index >= 0 && index < exampleNames.length) {
-                const exampleName = exampleNames[index];
-                document.getElementById('editor').value = examples[exampleName];
+        function applyExample(name, shouldRun = true) {
+            const editor = document.getElementById('editor');
+            if (!examples[name]) return;
+            editor.value = examples[name];
+            if (shouldRun) {
                 runCode();
             }
+        }
+
+        function setupExampleSelect() {
+            const select = document.getElementById('exampleSelect');
+            select.innerHTML = '';
+            Object.keys(examples).forEach((name) => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', () => {
+                applyExample(select.value);
+            });
+
+            select.value = '基本';
         }
 
         function clearEditor() {
@@ -409,7 +462,9 @@
             }
         }
 
-        // 初期実行
+        // 初期化
+        setupExampleSelect();
+        applyExample('基本', false);
         runCode();
     </script>
 </body>

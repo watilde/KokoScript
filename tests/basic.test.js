@@ -1,6 +1,8 @@
 // テストスイート
 
-const { compile } = require('./kokoscript');
+const fs = require('fs');
+const path = require('path');
+const { compile } = require('../src/compiler');
 const assert = require('assert');
 
 function test(name, fn) {
@@ -14,6 +16,7 @@ function test(name, fn) {
 }
 
 console.log('KokoScript テスト実行中...\n');
+const examplesDir = path.join(__dirname, 'examples');
 
 // 変数宣言のテスト
 test('変数宣言', () => {
@@ -105,6 +108,19 @@ test('複数文', () => {
   assert(result.code.includes('let a = 1'));
   assert(result.code.includes('let b = 2'));
   assert(result.code.includes('console.log'));
+});
+
+// サンプルファイルのコンパイル確認
+test('サンプルコード: basic.koko', () => {
+  const sample = fs.readFileSync(path.join(examplesDir, 'basic.koko'), 'utf-8');
+  const result = compile(sample);
+  assert(result.success);
+});
+
+test('サンプルコード: advanced.koko', () => {
+  const sample = fs.readFileSync(path.join(examplesDir, 'advanced.koko'), 'utf-8');
+  const result = compile(sample);
+  assert(result.success);
 });
 
 console.log('\nテスト完了！');

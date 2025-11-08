@@ -3,29 +3,7 @@
 // KokoScript インタプリタ
 
 const fs = require('fs');
-const { Lexer } = require('./lexer');
-const { Parser } = require('./parser');
-const { CodeGenerator } = require('./codegen');
-
-function compile(source) {
-  try {
-    // 字句解析
-    const lexer = new Lexer(source);
-    const tokens = lexer.tokenize();
-    
-    // 構文解析
-    const parser = new Parser(tokens);
-    const ast = parser.parse();
-    
-    // コード生成
-    const codegen = new CodeGenerator(ast);
-    const jsCode = codegen.generate();
-    
-    return { success: true, code: jsCode };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
+const { compile } = require('../compiler');
 
 function run(source) {
   const result = compile(source);
@@ -49,8 +27,8 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   
   if (args.length === 0) {
-    console.log('使い方: node kokoscript.js <ファイル名>');
-    console.log('例: node kokoscript.js example.koko');
+    console.log('使い方: koko <ファイル名>');
+    console.log('例: koko example.koko');
     process.exit(1);
   }
   

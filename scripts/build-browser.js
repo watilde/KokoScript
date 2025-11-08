@@ -1,11 +1,16 @@
 // Browser bundle builder for KokoScript
 
 const fs = require('fs');
+const path = require('path');
+
+const projectRoot = path.join(__dirname, '..');
+const readSource = (relativePath) =>
+  fs.readFileSync(path.join(projectRoot, relativePath), 'utf-8');
 
 // Read source files
-const lexerSource = fs.readFileSync('lexer.js', 'utf-8');
-const parserSource = fs.readFileSync('parser.js', 'utf-8');
-const codegenSource = fs.readFileSync('codegen.js', 'utf-8');
+const lexerSource = readSource('src/compiler/lexer.js');
+const parserSource = readSource('src/compiler/parser.js');
+const codegenSource = readSource('src/compiler/codegen.js');
 
 // Extract the class definitions and constants
 const lexerCode = lexerSource
@@ -68,5 +73,5 @@ const bundle = `// KokoScript Browser Bundle - 句読点ベース
 `;
 
 // Write to docs directory
-fs.writeFileSync('docs/kokoscript-bundle.js', bundle, 'utf-8');
+fs.writeFileSync(path.join(projectRoot, 'docs/kokoscript-bundle.js'), bundle, 'utf-8');
 console.log('✓ Browser bundle created: docs/kokoscript-bundle.js');

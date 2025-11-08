@@ -1,11 +1,17 @@
 {
   "name": "kokoscript",
   "version": "1.0.0",
-  "description": "日本語で書けるJavaScriptサブセット言語 - 句読点を活用した自然な構文",
-  "main": "kokoscript.js",
+  "description": "日本語で書けるJavaScriptサブセット言語",
+  "main": "src/compiler/index.js",
+  "bin": {
+    "koko": "bin/koko.js"
+  },
   "scripts": {
-    "test": "node test.js",
-    "repl": "node repl.js"
+    "cli": "node src/cli/koko.js",
+    "koko": "node bin/koko.js",
+    "repl": "node src/cli/repl.js",
+    "test": "node tests/basic.test.js",
+    "build:browser": "node scripts/build-browser.js"
   },
   "keywords": [
     "japanese",
@@ -14,6 +20,6 @@
     "transpiler",
     "kokoscript"
   ],
-  "author": "",
-  "license": "MIT"
+  "author": "Daijiro Wachi",
+  "license": "Apache-2.0"
 }
