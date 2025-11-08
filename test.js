@@ -28,7 +28,7 @@ test('条件分岐', () => {
   const source = `
     変数、年齢は25。
     もし、年齢が20より大きいならば、
-      「成人」と表示。
+      「成人」を表示。
     終わり。
   `;
   const result = compile(source);
@@ -41,7 +41,7 @@ test('条件分岐', () => {
 test('繰り返し', () => {
   const source = `
     3回、繰り返す、
-      「こんにちは」と表示。
+      「こんにちは」を表示。
     終わり。
   `;
   const result = compile(source);
@@ -54,7 +54,7 @@ test('繰り返し', () => {
 test('関数定義', () => {
   const source = `
     関数、挨拶は、名前で、
-      「こんにちは」と名前と表示。
+      「こんにちは」と名前を表示。
     終わり。
   `;
   const result = compile(source);
@@ -67,7 +67,7 @@ test('関数定義', () => {
 test('関数呼び出し', () => {
   const source = `
     関数、挨拶は、名前で、
-      「こんにちは」と名前と表示。
+      「こんにちは」と名前を表示。
     終わり。
     挨拶に「太郎」を渡す。
   `;
@@ -78,7 +78,7 @@ test('関数呼び出し', () => {
 
 // 表示文のテスト
 test('表示文', () => {
-  const source = '「Hello」と「World」と表示。';
+  const source = '「Hello」と「World」を表示。';
   const result = compile(source);
   assert(result.success);
   assert(result.code.includes('console.log'));
@@ -98,7 +98,7 @@ test('複数文', () => {
   const source = `
     変数、aは1。
     変数、bは2。
-    「完了」と表示。
+    「完了」を表示。
   `;
   const result = compile(source);
   assert(result.success);

@@ -1,4 +1,4 @@
-// レキサー（字句解析器）
+// レキサー（字句解析器） - 句読点ベース
 
 class Token {
   constructor(type, value, line, col) {
@@ -15,22 +15,21 @@ const TOKEN_TYPES = {
   NUMBER: 'NUMBER',
   STRING: 'STRING',
   OPERATOR: 'OPERATOR',
+  COMMA: 'COMMA',      // 、
+  PERIOD: 'PERIOD',    // 。
   NEWLINE: 'NEWLINE',
   EOF: 'EOF'
 };
 
-// 複数単語のキーワード（優先順位が高い）
-const COMPOUND_KEYWORDS = new Set([
-  'を渡す', 'と表示', 'で定義する'
-]);
-
+// キーワード（句読点の前後で区切られる）
 const KEYWORDS = new Set([
-  '変数', 'は', 'を', 'もし', 'が', 'ならば', 'そうでなければ',
-  '終わり', '繰り返す', '回', '関数', 'で', 'に', 
-  '渡す', '表示', 'と', 'より', 
-  '大きい', '小さい', '等しい', '以上', '以下',
-  '返す', '真', '偽', 'かつ', 'または', 'ではない',
-  ...COMPOUND_KEYWORDS
+  '変数', 'は', 'を', 'に', 'が', 'と', 'で', 'の', 'から',
+  'もし', 'ならば', 'そうでなければ', '終わり',
+  '回', '繰り返す', '抜ける', '続ける',
+  '関数', '返す', '呼ぶ',
+  'より', '大きい', '小さい', '等しい', '以上', '以下',
+  '表示', '渡す', '足す', '引く', '掛ける', '割る',
+  '真', '偽', '空'
 ]);
 
 class Lexer {
@@ -52,28 +51,28 @@ class Lexer {
 
       // 改行
       if (char === '\n') {
-        this.tokens.push(new Token(TOKEN_TYPES.NEWLINE, '\n', this.line, this.col));
         this.advance();
         this.line++;
         this.col = 1;
         continue;
       }
 
-      // 句読点（文の区切りとして扱う）
+      // 読点（、）- キーワードの区切り
       if (char === '、' || char === '，') {
-        this.tokens.push(new Token(TOKEN_TYPES.KEYWORD, '、', this.line, this.col));
+        this.tokens.push(new Token(TOKEN_TYPES.COMMA, '、', this.line, this.col));
         this.advance();
         continue;
       }
 
+      // 句点（。）- 文の終わり
       if (char === '。' || char === '．') {
-        this.tokens.push(new Token(TOKEN_TYPES.KEYWORD, '。', this.line, this.col));
+        this.tokens.push(new Token(TOKEN_TYPES.PERIOD, '。', this.line, this.col));
         this.advance();
         continue;
       }
 
       // コメント
-      if (char === '#' || char === '//') {
+      if (char === '#' || (char === '/' && this.source[this.pos + 1] === '/')) {
         this.skipComment();
         continue;
       }
@@ -90,15 +89,15 @@ class Lexer {
         continue;
       }
 
-      // 識別子またはキーワード
-      if (this.isIdentifierStart(char)) {
-        this.tokens.push(this.readIdentifier());
-        continue;
-      }
-
       // 演算子
       if (this.isOperator(char)) {
         this.tokens.push(this.readOperator());
+        continue;
+      }
+
+      // 識別子またはキーワード
+      if (this.isIdentifierStart(char)) {
+        this.tokens.push(this.readIdentifier());
         continue;
       }
 
@@ -133,7 +132,7 @@ class Lexer {
     const startChar = this.source[this.pos];
     let endChar = startChar === '「' ? '」' : startChar;
     
-    this.advance(); // 開始引用符をスキップ
+    this.advance();
 
     let value = '';
     while (this.pos < this.source.length && this.source[this.pos] !== endChar) {
@@ -154,7 +153,7 @@ class Lexer {
     }
 
     if (this.pos < this.source.length) {
-      this.advance(); // 終了引用符をスキップ
+      this.advance();
     }
 
     return new Token(TOKEN_TYPES.STRING, value, startLine, startCol);
@@ -188,148 +187,88 @@ class Lexer {
     const startCol = this.col;
     let value = '';
 
-    // まず全ての識別子文字を読む
-    while (this.pos < this.source.length && this.isIdentifierChar(this.source[this.pos])) {
-      value += this.source[this.pos];
+    // 一文字ずつ読みながら、キーワードをチェック
+    while (this.pos < this.source.length) {
+      const char = this.source[this.pos];
+      
+      // 句読点で止まる
+      if (char === '、' || char === '，' || char === '。' || char === '．') {
+        break;
+      }
+      
+      // スペースで止まる
+      if (char === ' ' || char === '\t' || char === '\r' || char === '\n') {
+        break;
+      }
+      
+      // 数字で止まる（識別子と数字は別々にトークン化）
+      if (this.isDigit(char)) {
+        break;
+      }
+      
+      // 演算子で止まる
+      if (this.isOperator(char)) {
+        break;
+      }
+      
+      // 文字列開始で止まる
+      if (char === '「' || char === '"' || char === "'") {
+        break;
+      }
+      
+      if (!this.isIdentifierChar(char)) {
+        break;
+      }
+      
+      value += char;
       this.advance();
-    }
-
-    // まず、読み取った文字列の先頭がキーワードかチェック
-    // 先頭から最短のキーワードマッチを探す
-    for (let i = 1; i <= value.length; i++) {
-      const prefix = value.substring(0, i);
-      if (KEYWORDS.has(prefix)) {
-        // このキーワードが複合キーワードの一部になる可能性をチェック
-        const remainder = value.substring(i); // 既に読んだ残り
-        
-        // すでに読んだ部分で複合キーワードが完成しているかチェック
-        const potentialCompound = prefix + remainder;
-        if (COMPOUND_KEYWORDS.has(potentialCompound)) {
-          return new Token(TOKEN_TYPES.KEYWORD, potentialCompound, startLine, startCol);
-        }
-        
-        // 読んだ部分では完成していない場合、さらに先を読む
-        const savedPos = this.pos;
-        const savedCol = this.col;
-        let lookahead = remainder;
-        
-        // スペースをスキップして次の単語を見る
-        while (this.pos < this.source.length && this.source[this.pos] === ' ') {
-          lookahead += this.source[this.pos];
-          this.advance();
-        }
-        
-        // 次の識別子を読む
-        if (this.pos < this.source.length && this.isIdentifierStart(this.source[this.pos])) {
-          while (this.pos < this.source.length && this.isIdentifierChar(this.source[this.pos])) {
-            lookahead += this.source[this.pos];
-            this.advance();
+      
+      // 読んだ部分の末尾がキーワードかチェック
+      // ただし、もっと長く読むとより長いキーワードになる可能性がある場合は続行
+      // 例: 「そうで」で止めず「そうでなければ」まで読む
+      // 最長マッチを優先：長いキーワードから短いキーワードへ
+      for (let i = value.length; i >= 1; i--) {
+        const suffix = value.substring(value.length - i);
+        if (KEYWORDS.has(suffix)) {
+          // もっと長いキーワードの可能性をチェック
+          // 次の文字を読んでもキーワードの一部になる可能性があるか？
+          let canExtend = false;
+          if (this.pos < this.source.length) {
+            const nextChar = this.source[this.pos];
+            if (this.isIdentifierChar(nextChar) && 
+                nextChar !== '、' && nextChar !== '，' && 
+                nextChar !== '。' && nextChar !== '．' &&
+                nextChar !== ' ' && nextChar !== '\t' && 
+                nextChar !== '\r' && nextChar !== '\n') {
+              // 次の文字を含めた文字列が、より長いキーワードの接頭辞になるか？
+              const extendedValue = value + nextChar;
+              for (const keyword of KEYWORDS) {
+                if (keyword.startsWith(extendedValue) && keyword.length > suffix.length) {
+                  canExtend = true;
+                  break;
+                }
+              }
+            }
           }
           
-          const compoundValue = (prefix + lookahead).replace(/\s+/g, '');
-          // 複合キーワードとして存在するかチェック
-          if (COMPOUND_KEYWORDS.has(compoundValue)) {
-            return new Token(TOKEN_TYPES.KEYWORD, compoundValue, startLine, startCol);
-          }
-        }
-        
-        // 複合キーワードでない場合は巻き戻して、単一キーワードを返す
-        this.pos = savedPos;
-        this.col = savedCol;
-        
-        // 位置を調整して、キーワードの後ろに戻す
-        this.pos -= (value.length - i);
-        this.col -= (value.length - i);
-        
-        return new Token(TOKEN_TYPES.KEYWORD, prefix, startLine, startCol);
-      }
-    }
-
-    // キーワードでない場合、末尾からキーワードまたは複合キーワードを探す
-    // 例: "名前は" -> "名前" (identifier) + "は" (keyword to be read next time)
-    // 例: "名前と表示" -> "名前" (identifier) + "と表示" (compound keyword to be read next time)
-    // 長いマッチを優先（複合キーワード > 単一キーワード）
-    
-    // まず複合キーワードをチェック
-    for (let i = 1; i < value.length; i++) {
-      const suffix = value.substring(i);
-      
-      // 複合キーワードのチェック（すでに読み込み済みの部分）
-      if (COMPOUND_KEYWORDS.has(suffix)) {
-        // 複合キーワードが見つかった
-        // 前半(prefix)にキーワードが含まれていないかチェック
-        const prefix = value.substring(0, i);
-        
-        // prefixの中から単一キーワードを探す（右から左、短いものを優先）
-        for (let j = prefix.length - 1; j > 0; j--) {
-          // 各位置から、短い方から長い方へチェック
-          for (let len = 1; len <= prefix.length - j; len++) {
-            const keyword = prefix.substring(j, j + len);
-            if (KEYWORDS.has(keyword) && !COMPOUND_KEYWORDS.has(keyword)) {
-              // キーワードが見つかった - そこで分割
-              const finalPrefix = prefix.substring(0, j);
-              this.pos -= (suffix.length + prefix.length - j);
-              this.col -= (suffix.length + prefix.length - j);
-              return new Token(TOKEN_TYPES.IDENTIFIER, finalPrefix, startLine, startCol);
+          if (!canExtend) {
+            const identifier = value.substring(0, value.length - i);
+            
+            if (identifier.length > 0) {
+              // キーワードの前で止める
+              this.pos -= i;
+              this.col -= i;
+              return new Token(TOKEN_TYPES.IDENTIFIER, identifier, startLine, startCol);
+            } else {
+              // 全体がキーワード
+              return new Token(TOKEN_TYPES.KEYWORD, suffix, startLine, startCol);
             }
           }
         }
-        
-        // prefixにキーワードがない場合は、そのまま返す
-        this.pos -= suffix.length;
-        this.col -= suffix.length;
-        return new Token(TOKEN_TYPES.IDENTIFIER, prefix, startLine, startCol);
-      }
-      
-      // 複合キーワードの一部がsuffixで、残りがlookaheadにある場合
-      const savedPos = this.pos;
-      const savedCol = this.col;
-      let extendedSuffix = suffix;
-      
-      // スペースをスキップして次の単語を見る
-      while (this.pos < this.source.length && this.source[this.pos] === ' ') {
-        extendedSuffix += this.source[this.pos];
-        this.advance();
-      }
-      
-      // 次の識別子を読む
-      if (this.pos < this.source.length && this.isIdentifierStart(this.source[this.pos])) {
-        while (this.pos < this.source.length && this.isIdentifierChar(this.source[this.pos])) {
-          extendedSuffix += this.source[this.pos];
-          this.advance();
-        }
-        
-        const compoundValue = extendedSuffix.replace(/\s+/g, '');
-        // 複合キーワードとして存在するかチェック
-        if (COMPOUND_KEYWORDS.has(compoundValue)) {
-          // 複合キーワードが見つかった - 前半を識別子として返す
-          this.pos = savedPos;
-          this.col = savedCol;
-          const prefix = value.substring(0, i);
-          this.pos -= suffix.length;
-          this.col -= suffix.length;
-          return new Token(TOKEN_TYPES.IDENTIFIER, prefix, startLine, startCol);
-        }
-      }
-      
-      // 複合キーワードでない場合は巻き戻し
-      this.pos = savedPos;
-      this.col = savedCol;
-    }
-    
-    // 次に単一キーワードをチェック
-    for (let i = 1; i < value.length; i++) {
-      const suffix = value.substring(i);
-      if (KEYWORDS.has(suffix)) {
-        // 後半がキーワードなので、前半だけを識別子として返す
-        const prefix = value.substring(0, i);
-        // 位置を巻き戻す
-        this.pos -= suffix.length;
-        this.col -= suffix.length;
-        return new Token(TOKEN_TYPES.IDENTIFIER, prefix, startLine, startCol);
       }
     }
 
+    // キーワードチェック
     const type = KEYWORDS.has(value) ? TOKEN_TYPES.KEYWORD : TOKEN_TYPES.IDENTIFIER;
     return new Token(type, value, startLine, startCol);
   }
@@ -351,7 +290,7 @@ class Lexer {
   }
 
   isIdentifierChar(char) {
-    return /[a-zA-Z_あ-んア-ンー一-龯]/.test(char);
+    return /[a-zA-Z0-9_あ-んア-ンー一-龯]/.test(char);
   }
 
   isOperator(char) {
